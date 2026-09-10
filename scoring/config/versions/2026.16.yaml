@@ -1,0 +1,190 @@
+# Versioned scoring configuration (Appendix C). Every score row records the
+# version it was computed under, so weightings are reproducible and A/B-comparable.
+# Bump `version` on any change; never edit in place after a production run.
+version: "2026.16"
+# 2026.14: condominium-regime rule. Deeds sharing one physical footprint
+# (identical geometry) are condo/townhouse units, not N independent lots -
+# Wind St in Columbia Twp had 6 unbuilt Blue Ocean Dev units + 1 sold $1.1M
+# townhouse on one ~1-acre footprint, each scoring 80.75. Condo units now get
+# no underutilization or capacity signal (a unit owns a slice, not the site).
+# Also suppressed capacity for complex satellites (same latent double-count).
+# 2026.13: distress-waiver calibration. Measured on live data, a single
+# routine tax delinquency yields distress ~40.5 - so the old waiver of 40 let
+# almost any delinquent parcel escape the amenity/subdivision damps (the
+# Brunsman Wy builder lots did exactly that). A sheriff sale averages ~74.1, so
+# both waivers move to 75: the exception now needs genuine failure, not one
+# unpaid bill.
+# 2026.12: two more split-bookkeeping / not-for-sale patterns, found by
+# developer-style diligence on the top 10: (a) satellites now also detected by
+# ADJACENCY to a same-owner commercial building >= $500k (5801 Colerain Ave is
+# the outparcel of the same owner's $1.3M store; the same-address rule missed
+# it). House side lots (neighbour < $500k) are deliberately untouched - real
+# infill, ~31k of them. (b) builder subdivision inventory: >=3 same-owner lots
+# sharing one plat date and land value = an active project's stock.
+# 2026.11: complex-satellite rule - a deed with no improvements whose
+# same-address/same-owner sibling holds the buildings is not developable land
+# (4045 Reading Rd ranked #1 as 'vacant' while its sibling held $920k of
+# apartments). Apartment classes 401/402/403 are never vacant. Single-family
+# classes with $0 improvement stay vacant - real demolished-house infill.
+# 2026.10: demand component live (5 of 5) --" neighborhood sales turnover, price
+# momentum, and sale-to-assessed ratio, computed from Auditor sale history and
+# shown VERBATIM in the dossier (the score is a documented summary, the metrics
+# are the product).
+# 2026.9: NULL valuation is UNKNOWN, not vacant --" multi-deed complexes book
+# improvements on main deeds and leave satellites NULL; those read as prime
+# vacant land (Williamsburg apartments' lawn ranked #2 countywide). Vacancy now
+# requires affirmative evidence (vacant class or explicit $0 improvement).
+# 2026.8: operating-amenity damping --" golf courses / country clubs (DTE
+# recreation classes + club owner names) read as vast underutilized land but
+# are healthy businesses, not listings. x0.3 penalty, WAIVED when the parcel's
+# distress crosses the threshold (a failing club is a legitimate play).
+# 2026.7: assemblage component live --" same-owner adjacent clusters >= threshold,
+# scored by combined footprint x cluster vacancy. Members carry assemblage_id.
+# 2026.6: capacity_gap component live --" allowed units (zoning_rules.yaml density
+# by district) minus existing units; unknown districts excluded per-parcel
+# rather than zeroed.
+# 2026.5: unified not_acquirable knockout --" DTE 600-series exempt AND
+# 800-series public utility classes, plus any parcel with a public or
+# institutional owner (hospitals, universities, churches, cemeteries,
+# railroads), regardless of class code. Exception: landbank_inventory signal
+# keeps a parcel scoreable (publicly held but genuinely for sale).
+# 2026.4: tax-exempt (600-series) knockout --" Eden Park was ranking.
+# 2026.3: per-type contribution caps (max_events) on distress signals.
+# 2026.2: vacant lots scaled by land value + lot size, severity-scaled distress,
+# ownership modifier (absentee/LLC more acquirable). Priors under versions/.
+
+
+
+# Improvement-to-land ratio thresholds below which a parcel reads as underutilized,
+# per economic use class. Lower I/L => more land value sitting idle => higher signal.
+il_thresholds:
+  commercial: 1.0
+  multifamily: 1.0
+  single_family: 0.5
+
+
+
+# A parcel is "infill" if enough of its neighborhood within the buffer is developed.
+infill:
+  neighbor_buffer_ft: 100
+  min_developed_share: 0.6
+
+
+
+# Adjacent same-owner parcels combining above this footprint flag an assemblage
+# play. Credit ramps from min_combined_sqft to full_credit_sqft, scaled by how
+# underutilized the cluster's members are.
+assemblage:
+  min_combined_sqft: 7500
+  full_credit_sqft: 30000
+
+
+
+# Vacant-lot quality scaling (geometric mean of the two ramps). A vacant parcel
+# earns full underutilization credit only if it is both big enough to build on
+# and worth something --" buries slivers/common-area scraps without dropping them.
+# Missing land value or area skips that ramp (don't punish missing data).
+vacant_scaling:
+  sliver_sqft: 500          # at or below: size factor 0
+  viable_sqft: 5000         # at or above: size factor 1 (buildable city lot)
+  min_land_value: 2000      # at or below: value factor 0
+  full_land_value: 40000    # at or above: value factor 1
+
+
+
+# Distress severity scaling: multiplier on a signal's contribution based on the
+# signal's $ severity relative to the parcel's land value. A lot delinquent for
+# most of its land value marks a far more motivated seller than a $50 slip.
+severity_scaling:
+  tax_delinquent: { min_mult: 0.4, max_mult: 1.6, ratio_at_max: 1.0 }
+
+
+
+# Ownership modifier: multiplies the final composite (capped at max_total, then
+# score capped at 100). Absentee + entity owners are more acquirable; publicly
+# owned parcels route through the land bank, not direct acquisition.
+ownership_multiplier:
+  absentee: 1.05
+  llc: 1.05
+  trust: 1.03
+  public: 0.85
+  max_total: 1.10
+
+
+
+# Distress signals: per-type weight and recency half-life in months.
+# null half_life => no decay (a standing-inventory fact, not a dated event).
+# max_events caps a type's total contribution at the equivalent of that many
+# full-strength events (diminishing returns on repeat reports); absent = uncapped.
+distress_weights:
+  foreclosure_filing: { weight: 1.0, half_life: 12 }
+  sheriff_sale:       { weight: 1.0, half_life: 12 }
+  tax_delinquent:     { weight: 0.8, half_life: 24 }
+  condemnation:       { weight: 0.9, half_life: 36, max_events: 2 }
+  code_violation:     { weight: 0.4, half_life: 18, max_events: 3 }
+  landbank_inventory: { weight: 0.7, half_life: null }
+
+
+
+# Composite opportunity score = weighted sum of the five components. Must sum to 1.0.
+composite_weights:
+  underutilization: 0.30
+  capacity_gap:     0.25
+  distress:         0.25
+  assemblage:       0.10
+  demand:           0.10
+
+
+
+# Soft constraints: multiply the final score (do not zero it). Surfaced as flags so
+# an analyst can judge entitlement risk per parcel.
+constraint_penalty:
+  flood: 0.7
+  steep_slope: 0.8
+  historic: 0.85
+  cso: 0.9
+  operating_amenity: 0.3
+  subdivision_inventory: 0.35
+
+
+
+# Operating amenities (golf courses, country/swim/tennis clubs): vast land,
+# thin improvements --" but going concerns, not opportunities. The penalty is
+# waived when distress_score >= distress_waiver: a failing club is a real play.
+amenity:
+  classes: ["461", "462", "463"]     # Ohio DTE commercial recreation / golf
+  owner_keywords: ["COUNTRY CLUB", "GOLF", "SWIM CLUB", "TENNIS CLUB",
+                   "ATHLETIC CLUB", "RACQUET"]
+  distress_waiver: 75
+
+
+
+# Builder subdivision inventory: damped unless the project itself is
+# distressed (a stalled subdivision is a legitimate acquisition).
+subdivision:
+  distress_waiver: 75
+# Neighborhood demand: metric ramps + blend weights. Sales below
+# min_market_price are non-arms-length transfers (family deeds, $0 tax
+# transfers) and never counted.
+demand:
+  # DEVELOPMENT demand (v2, permit-driven). Back-test: resale-turnover demand was
+  # anti-correlated with construction (Spearman -0.37); permit density back-tests
+  # positive. Score = build density + trajectory; null outside city permit cover.
+  dev_window_years: 5
+  dev_recent_months: 30
+  dev_full_per_1k: 15.0            # new-builds/1k parcels at/above => full density credit
+  dev_trajectory_cap_pct: 150     # recent-vs-prior % change clamped to +/- this
+  weights: { dev_density: 0.7, dev_trajectory: 0.3 }
+  # resale metrics kept as dossier CONTEXT only (not scored) since 2026.15
+  min_market_price: 5000
+  window_months: 24
+
+
+
+# Hard knockout: drop the parcel entirely below the surfacing threshold.
+# not_acquirable is applied by the scorer for exempt/utility classes and
+# public/institutional owners without a landbank_inventory signal.
+hard_knockout:
+  - regulatory_floodway
+  - not_acquirable
+

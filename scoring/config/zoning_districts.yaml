@@ -1,0 +1,753 @@
+# Buildable-envelope rules per zoning district, transcribed from each
+# jurisdiction's OFFICIAL published code. Every district carries the section it
+# came from so a number can be traced back and re-checked.
+#
+# This drives the plain-English zoning read shown on a parcel. It deliberately
+# stops at the RULES and does not compute a lot yield: how many units a site
+# actually supports depends on topography, access, utilities and what the
+# municipality will approve, which is the agent's call, not the model's.
+#
+# IMPORTANT: this is informational, not a zoning determination. Overlays, planned
+# districts, variances, deed restrictions and lot-specific history all move these
+# numbers, and the municipality is the only authority. Anything not verified
+# against the official text is left absent rather than guessed.
+#
+# units: feet for setbacks/width/height, square feet for areas.
+# side_yard_ft is the MINIMUM on one side; side_yard_total_ft is the required sum
+# of both sides where the code states a min/total pair (e.g. Cincinnati "7/16").
+#
+# `overlays:` holds suffix designations the county appends to the base code
+# (SF-6-MH, RM-1.2-T, A_HOD). They modify the base district rather than replace
+# it, so they are matched separately and reported alongside it.
+
+version: "2026.2"
+
+jurisdictions:
+
+  blue_ash:
+    name: City of Blue Ash
+    source: Codified Ordinances of Blue Ash, Part Eleven - Planning and Zoning Code
+    citation: "Blue Ash Ord. 1131.01, Table 1131-1 (Ord. 2017 passed 1-26-17; Ord. 2020-1 passed 2-27-20)"
+    url: https://codelibrary.amlegal.com/codes/blueash/latest/blueash_oh/0-0-0-26142
+    verified: "2026-08-11"
+    # The front-yard footnote is a real-world gotcha worth surfacing: in EXISTING
+    # residential areas the required front setback is the AVERAGE of the existing
+    # front setbacks of principal structures on the same side of the street within
+    # 300 ft, when that average is LESS than the district minimum (panhandle lots
+    # excepted). So the table value is a ceiling on established streets.
+    front_yard_note: >-
+      In existing residential areas the required front setback is the average of
+      existing front setbacks on the same side of the street within 300 ft when
+      that average is less than the district minimum (does not apply to panhandle
+      lots) - Blue Ash 1131.01 note **.
+    districts:
+      R-1:
+        name: Residential Low Density
+        residential: true
+        min_lot_area_sqft: 20000
+        min_lot_width_ft: 110
+        front_yard_ft: 50
+        side_yard_ft: 15
+        rear_yard_ft: 30
+        max_height_ft: 35
+        uses: Single-family detached
+      R-2:
+        name: Residential Medium Density
+        residential: true
+        min_lot_area_sqft: 15000
+        min_lot_width_ft: 90
+        front_yard_ft: 50
+        side_yard_ft: 10
+        rear_yard_ft: 30
+        max_height_ft: 35
+        uses: Single-family detached
+      R-3:
+        name: Residential High Density
+        residential: true
+        min_lot_area_sqft: 6250       # per DWELLING UNIT, not per lot
+        area_is_per_unit: true
+        min_lot_width_ft: 50          # single-family detached lots only; no
+        width_applies_to: single_family_only   # minimum for non-single-family
+        front_yard_ft: 40
+        side_yard_ft: 5
+        rear_yard_ft: 25
+        max_height_ft: 35
+        uses: Single-family through multi-family
+      BAN:
+        name: Blue Ash North District
+        residential: false
+        front_yard_ft: 30
+        max_height_ft: 90
+        uses: Commercial
+      SPD:
+        name: Summit Park District
+        residential: false
+        front_yard_ft: 30
+        max_height_ft: 90
+        uses: Commercial / mixed use
+        note: Appears as "SP" in the code table and "SPD" in the county zoning layer.
+      BAS:
+        name: Blue Ash South District
+        residential: false
+        front_yard_ft: 30
+        max_height_ft: 50
+        uses: Commercial
+      DT:
+        name: Downtown District
+        residential: true
+        uses: Downtown mixed use
+        # Yard, lot and height regulations for Downtown live in 1135.07, not the
+        # summary table - not transcribed yet, so no envelope is asserted here.
+        note: Downtown yard/lot/height regulations are in Blue Ash 1135.07 (not yet transcribed).
+
+  symmes:
+    name: Symmes Township
+    source: Zoning Resolution for the Unincorporated Territory of Symmes Township, Hamilton County, Ohio (October 2024)
+    citation: "Symmes Township Zoning Resolution, per-district Height and Area Regulations articles"
+    url: https://www.symmestownship.org/DocumentCenter/View/2848/SymmesZoningCode_10-8-24PDF
+    verified: "2026-08-11"
+    # Lot width in Symmes is measured AT THE BUILDING LINE, not at the street.
+    width_note: >-
+      Minimum lot width is measured at the building line (Symmes area regulations).
+    districts:
+      AA:
+        name: '"A-A" Residence District'
+        residential: true
+        min_lot_area_sqft: 43560         # one acre
+        min_lot_width_ft: 150
+        front_yard_ft: 50
+        side_yard_ft: 25
+        rear_yard_ft: 60
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Single-family dwellings on one-acre lots
+        note: >-
+          Symmes's largest-lot residential district: a full acre and 150 ft of
+          width at the building line. Written "A - A" in the resolution and "AA"
+          in the county zoning layer. The 50 ft front yard need not exceed the
+          average of the existing front yards on the adjacent lots within the same
+          block and 100 ft (Symmes Sec. 64.1-1).
+      A:
+        name: '"A" Residence District'
+        residential: true
+        min_lot_area_sqft: 20000
+        min_lot_width_ft: 100
+        front_yard_ft: 50
+        side_yard_ft: 15
+        rear_yard_ft: 35
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Single-family dwellings; agriculture on lots under 5 acres
+      A-2:
+        name: '"A-2" Residence District'
+        residential: true
+        min_lot_area_sqft: 14000
+        min_lot_width_ft: 80
+        front_yard_ft: 40
+        side_yard_ft: 10
+        rear_yard_ft: 35
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Single-family dwellings
+      B:
+        name: '"B" Residence District'
+        residential: true
+        min_lot_area_sqft: 10500
+        min_lot_width_ft: 70
+        front_yard_ft: 35
+        side_yard_ft: 8
+        rear_yard_ft: 35
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Single-family dwellings
+      C:
+        name: '"C" Residence District'
+        residential: true
+        min_lot_area_sqft: 6000
+        min_lot_width_ft: 50
+        front_yard_ft: 30
+        side_yard_ft: 5
+        rear_yard_ft: 30
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Single-family dwellings
+      D:
+        name: '"D" Residence District'
+        residential: true
+        min_lot_area_sqft: 5000
+        min_lot_width_ft: 50
+        front_yard_ft: 30
+        side_yard_ft: 5
+        rear_yard_ft: 30
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Residence (small-lot)
+      DD:
+        name: '"DD" Planned Multiple Residence District'
+        residential: true
+        min_lot_area_sqft: 4356          # PER APARTMENT, not per lot
+        area_is_per_unit: true
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Multi-family / apartments, by approved plan
+        note: >-
+          A planned district: the approved development plan governs yards and
+          layout, so setbacks are not fixed in the table.
+      E:
+        name: '"E" Retail District'
+        residential: false
+        min_lot_area_sqft: 10000
+        min_lot_width_ft: 60
+        front_yard_ft: 50
+        rear_yard_ft: 35
+        max_height_ft: 30
+        max_stories: 2
+        uses: Retail business
+      H:
+        name: '"H" Riverfront District'
+        residential: true
+        min_lot_area_sqft: 20000
+        min_lot_width_ft: 100
+        front_yard_ft: 50
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Riverfront
+      O:
+        name: '"O" Office District'
+        residential: false
+        front_yard_ft: 30
+        side_yard_ft: 5
+        rear_yard_ft: 35
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Office
+        note: >-
+          The article states lot minimums for more than one use case (a 60 ft /
+          10,000 sqft standard and a 100 ft / 20,000 sqft standard); confirm which
+          applies before relying on a lot minimum here.
+      OO:
+        name: '"OO" Planned Office District'
+        residential: false
+        max_height_ft: 45
+        uses: Office, by approved plan
+        note: A planned district - the approved development plan governs yards and lot layout.
+      EE:
+        name: '"EE" Planned Retail District'
+        residential: false
+        rear_yard_ft: 60
+        max_height_ft: 30
+        uses: Retail, by approved plan
+        note: A planned district - the approved development plan governs yards and lot layout.
+      F:
+        name: '"F" Light Industrial District'
+        residential: false
+        front_yard_ft: 50
+        side_yard_ft: 20
+        rear_yard_ft: 30
+        max_height_ft: 30
+        max_stories: 2
+        uses: Light industrial
+        note: >-
+          No minimum lot area is stated. The required front yard must be
+          landscaped and maintained. Where the district abuts a Residence
+          District the side and rear yards instead follow the Transition
+          Regulations (Symmes Sec. 115), which are larger.
+      FF:
+        name: '"FF" Planned Light Industrial District'
+        residential: false
+        uses: Light industrial, by approved plan
+        note: A planned district - the approved development plan governs yards and lot layout.
+      G:
+        name: '"G" Heavy Industrial District'
+        residential: false
+        front_yard_ft: 50
+        side_yard_ft: 20
+        rear_yard_ft: 30
+        max_height_ft: 30
+        max_stories: 2
+        uses: Heavy industrial
+        note: >-
+          No minimum lot area is stated. Where the district abuts a Residence
+          District the side and rear yards instead follow the Transition
+          Regulations (Symmes Sec. 124.4), which are larger.
+
+  montgomery:
+    name: City of Montgomery
+    source: Montgomery Zoning Code, Chapter 151 - Zoning Districts
+    citation: "Montgomery Zoning Code Schedules 151.1004 (lot), 151.1005 (yards), 151.1006 (cluster/multi-family), 151.1008 (height), 151.1204(A) (business lots) - Ord. 6-2010 passed 7-7-10, Am. Ord. 19-2014 passed 12-3-14"
+    url: https://library.municode.com/oh/montgomery/codes/code_of_ordinances
+    verified: "2026-08-13"
+    # The 50 ft front yard applies in EVERY residential district, including the
+    # 6,250 sqft D-3 lots — it is the binding constraint on shallow lots far more
+    # often than lot area is, so it is called out here.
+    front_yard_note: >-
+      Montgomery requires a 50 ft front yard in every residential district. On a
+      block where 40% or more of the frontage is already built with structures
+      that predate the code and do not meet it, a new building may come forward to
+      the average front setback of the nearest four lots on that side of the
+      street (Montgomery 151.1005(B)).
+    width_note: >-
+      Minimum lot width is measured at the building line (Montgomery 151.1004).
+    districts:
+
+      # --- Chapter 151.10, Residential Districts (A, B, C, D-2, D-3) ---
+      A:
+        name: '"A" Single-Family Residential'
+        residential: true
+        min_lot_area_sqft: 20000
+        min_lot_width_ft: 80
+        front_yard_ft: 50
+        side_yard_ft: 15
+        rear_yard_ft: 35
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Single-family detached
+        note: >-
+          Two-family dwellings are not permitted in A. Lots on a cul-de-sac may
+          have as little as 50 ft of frontage.
+      B:
+        name: '"B" Single-Family Residential'
+        residential: true
+        min_lot_area_sqft: 15000
+        min_lot_width_ft: 70
+        front_yard_ft: 50
+        side_yard_ft: 12
+        rear_yard_ft: 30
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Single-family detached
+        note: >-
+          Two-family dwellings are not permitted in B. Cul-de-sac lots may have
+          45 ft of frontage.
+      C:
+        name: '"C" Residential'
+        residential: true
+        min_lot_area_sqft: 12000
+        min_lot_width_ft: 65
+        front_yard_ft: 50
+        side_yard_ft: 10
+        rear_yard_ft: 30
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Single-family detached and two-family
+        note: >-
+          Two-family also needs 12,000 sqft on a 65 ft lot, with 10 ft side and
+          30 ft rear yards. Cul-de-sac lots may have 45 ft of frontage.
+      D-2:
+        name: '"D-2" Residential'
+        residential: true
+        min_lot_area_sqft: 7400
+        min_lot_width_ft: 60
+        front_yard_ft: 50
+        side_yard_ft: 8
+        rear_yard_ft: 25
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Single-family detached, two-family, cluster and multi-family by plan
+        note: >-
+          Two-family needs 10,000 sqft on a 65 ft lot. Cluster, attached
+          single-family and multi-family development is allowed on a tract of at
+          least 2 acres at up to 5 dwelling units per acre, 60% maximum impervious
+          coverage, no more than 4 attached units per building, and 100 ft of lot
+          frontage (Montgomery 151.1006).
+      D-3:
+        name: '"D-3" Residential'
+        residential: true
+        min_lot_area_sqft: 6250
+        min_lot_width_ft: 60
+        front_yard_ft: 50
+        side_yard_ft: 8
+        rear_yard_ft: 25
+        max_height_ft: 35
+        max_stories: 2.5
+        uses: Single-family detached, two-family, cluster and multi-family by plan
+        note: >-
+          The densest Montgomery residential district. Two-family needs 8,500 sqft
+          on a 65 ft lot. Cluster, attached single-family and multi-family is
+          allowed on a tract of at least 1 acre at up to 6 dwelling units per
+          acre, 60% maximum impervious coverage, no more than 6 attached units per
+          building, and 100 ft of lot frontage. Multi-family buildings here may go
+          to 3 stories / 45 ft rather than the 35 ft single-family cap
+          (Montgomery 151.1006, 151.1008(A)).
+
+      # --- Chapter 151.12, Business Districts (Schedule 151.1204(A)) ---
+      O:
+        name: '"O" Office District'
+        residential: false
+        min_lot_area_sqft: 15000
+        min_lot_width_ft: 75
+        max_height_ft: 45
+        max_stories: 3
+        uses: Office
+      OC:
+        name: '"OC" Office Commercial District'
+        residential: false
+        min_lot_area_sqft: 15000
+        min_lot_width_ft: 75
+        max_height_ft: 45
+        max_stories: 3
+        uses: Office and commercial
+      LB:
+        name: '"L-B" Limited Business District'
+        residential: false
+        min_lot_area_sqft: 15000
+        min_lot_width_ft: 75
+        max_height_ft: 45
+        max_stories: 3
+        uses: Limited business
+        note: Appears as "L-B" in the code and "LB" in the county zoning layer.
+      GB:
+        name: '"G-B" General Business District'
+        residential: false
+        min_lot_area_sqft: 15000
+        min_lot_width_ft: 75
+        max_height_ft: 45
+        max_stories: 3
+        uses: General business
+        note: Appears as "G-B" in the code and "GB" in the county zoning layer.
+      OMG:
+        name: '"OMG" Old Montgomery Gateway District'
+        residential: true
+        min_lot_area_sqft: 10000
+        min_lot_width_ft: 40
+        uses: Mixed use, including multi-family by plan
+        note: >-
+          Buildings must occupy at least 60% of the lot width. Residential
+          development is allowed on a tract of at least 0.75 acres at up to 12
+          dwelling units per acre with 80% maximum impervious coverage - the
+          highest density in Montgomery. Height is governed by 151.1509 rather
+          than the general residential cap, so it is not asserted here.
+      OM:
+        name: '"OM" Old Montgomery District'
+        residential: true
+        uses: Historic village mixed use
+        note: >-
+          No minimum lot size or lot width. In the Core Area buildings must occupy
+          70% of the lot frontage (a wall may make up the difference); the Outer
+          Area allows residential development on a tract of at least 0.75 acres at
+          up to 10 dwelling units per acre with 80% impervious coverage and 90 ft
+          of lot frontage. The city zoning map defines the Core / Outer boundary.
+
+    overlays:
+      HOD:
+        name: Heritage Overlay District
+        citation: "Montgomery Zoning Code Chapter 151.14"
+        effect: >-
+          An overlay on top of the base district governing building height,
+          design and appearance, with its own review. Expect design review on any
+          exterior change or new construction.
+      OUT:
+        name: Old Montgomery - Outer Area
+        citation: "Montgomery Zoning Code Schedules 151.1006 and 151.1204(A)"
+        effect: >-
+          The Outer Area of the Old Montgomery District: no minimum lot size or
+          width, and residential development up to 10 dwelling units per acre on a
+          tract of at least 0.75 acres.
+      HOS:
+        name: Hospital Corridor Overlay District
+        citation: "Montgomery Zoning Code Chapter 151.16"
+        effect: >-
+          Building height is stepped by distance from the south property
+          boundary, from 2 stories at 150 ft up to 6 stories beyond 450 ft, and
+          anything over 60 ft is set back an extra foot per foot of height.
+
+  cincinnati:
+    name: City of Cincinnati
+    source: Cincinnati Municipal Code, Title XIV - Zoning Code of the City of Cincinnati
+    citation: "CMC Title XIV: Schedule 1403-07 (single-family), Schedule 1405-07 (multi-family), Schedule 1409-09 (commercial), Schedule 1407-07 (office), Schedule 1413-07 (manufacturing); as amended through Emer. Ord. No. 199-2024, eff. 7-1-2024"
+    url: https://library.municode.com/oh/cincinnati/codes/code_of_ordinances?nodeId=TIXIZOCOCI
+    verified: "2026-08-13"
+    # Every SF/RM number below was cross-checked against a second independent
+    # reproduction of the code (cincinnati-oh.elaws.us) and agreed exactly, except
+    # the rowhouse minimums, which the 2024 Connected Communities ordinance
+    # lowered - those follow the current post-2024 text.
+    width_note: >-
+      Cincinnati states side yards as a minimum/total pair: the smaller number is
+      the least any one side may be, and the larger is the required sum of both
+      sides (CMC Schedules 1403-07 and 1405-07).
+    districts:
+
+      # --- Chapter 1403, Single-Family Districts (Schedule 1403-07) ---
+      SF-20:
+        name: SF-20 Single-Family
+        residential: true
+        min_lot_area_sqft: 20000
+        min_lot_width_ft: 70
+        front_yard_ft: 30
+        side_yard_ft: 10
+        side_yard_total_ft: 20
+        rear_yard_ft: 35
+        max_height_ft: 35
+        uses: Single-family detached
+      SF-10:
+        name: SF-10 Single-Family
+        residential: true
+        min_lot_area_sqft: 10000
+        min_lot_width_ft: 60
+        front_yard_ft: 30
+        side_yard_ft: 10
+        side_yard_total_ft: 20
+        rear_yard_ft: 35
+        max_height_ft: 35
+        uses: Single-family detached
+      SF-6:
+        name: SF-6 Single-Family
+        residential: true
+        min_lot_area_sqft: 6000
+        min_lot_width_ft: 50
+        front_yard_ft: 25
+        side_yard_ft: 7
+        side_yard_total_ft: 16
+        rear_yard_ft: 35
+        max_height_ft: 35
+        uses: Single-family detached
+      SF-4:
+        name: SF-4 Single-Family
+        residential: true
+        min_lot_area_sqft: 4000
+        min_lot_width_ft: 40
+        front_yard_ft: 20
+        side_yard_ft: 3
+        side_yard_total_ft: 12
+        rear_yard_ft: 25
+        max_height_ft: 35
+        uses: Single-family detached
+        note: >-
+          Attached single-family in SF-4 has a lower standard: 3,500 sqft lot,
+          35 ft wide, 0/6 ft side yards.
+      SF-2:
+        name: SF-2 Single-Family
+        residential: true
+        min_lot_area_sqft: 2000
+        min_lot_width_ft: 25
+        front_yard_ft: 5
+        side_yard_ft: 0
+        side_yard_total_ft: 5
+        rear_yard_ft: 20
+        max_height_ft: 35
+        uses: Single-family detached, small-lot urban
+        note: >-
+          Rowhouses are allowed on 1,500 sqft lots, 25 ft wide, with 0 ft interior
+          side yards.
+
+      # --- Chapter 1405, Residential Multi-Family (Schedule 1405-07) ---
+      # The headline number for these districts is lot area PER DWELLING UNIT,
+      # which is what sets how many units a site carries. The single-family and
+      # two-family lot minimums are carried in the note.
+      RMX:
+        name: RMX Residential Mixed
+        residential: true
+        min_lot_area_sqft: 2500
+        area_is_per_unit: true
+        min_lot_width_ft: 25
+        front_yard_ft: 20
+        side_yard_ft: 3
+        side_yard_total_ft: 6
+        rear_yard_ft: 20
+        max_height_ft: 35
+        uses: Single-family through three-family, rowhouses
+        note: >-
+          Lot minimums by building type: single-family 2,500 sqft; two-family
+          5,000 (2,500/unit); three-family 7,500 (2,500/unit); rowhouse 1,500.
+      RM-2.0:
+        name: RM-2.0 Residential Multi-Family
+        residential: true
+        min_lot_area_sqft: 2000
+        area_is_per_unit: true
+        front_yard_ft: 20
+        side_yard_ft: 5
+        side_yard_total_ft: 17
+        rear_yard_ft: 35
+        max_height_ft: 45
+        uses: Single-family through multi-family
+        note: >-
+          2,000 sqft of lot per dwelling unit. Single-family 2,000 sqft on a 25 ft
+          lot; two-family 4,000. Single-family and two-family build to the lower
+          envelope: 0/5 to 3/6 ft side yards, 20 ft rear, 35 ft height.
+      RM-1.2:
+        name: RM-1.2 Residential Multi-Family
+        residential: true
+        min_lot_area_sqft: 1200
+        area_is_per_unit: true
+        front_yard_ft: 20
+        side_yard_ft: 5
+        side_yard_total_ft: 17
+        rear_yard_ft: 30
+        uses: Single-family through multi-family
+        note: >-
+          1,200 sqft of lot per dwelling unit - the densest of the common Hyde
+          Park / Oakley residential districts. Single-family 2,000 sqft on a 25 ft
+          lot; two-family 2,400. Schedule 1405-07 states no height cap for
+          multi-family here; confirm with Zoning Administration.
+      RM-0.7:
+        name: RM-0.7 Residential Multi-Family
+        residential: true
+        min_lot_area_sqft: 700
+        area_is_per_unit: true
+        front_yard_ft: 5
+        side_yard_ft: 0
+        side_yard_total_ft: 5
+        rear_yard_ft: 25
+        uses: Single-family through multi-family, high density
+        note: >-
+          700 sqft of lot per dwelling unit. Single-family 2,000 sqft on a 25 ft
+          lot; two-family 2,000. No height cap stated for multi-family.
+
+      # --- Chapter 1409, Commercial Districts (Schedule 1409-09) ---
+      # No minimum lot area at all; form is controlled by build-to lines and
+      # ground-floor transparency instead. Residential above/behind retail is
+      # allowed at 700 sqft per unit new, 500 in an existing building.
+      CN-P:
+        name: CN-P Commercial Neighborhood - Pedestrian
+        residential: false
+        front_yard_ft: 0
+        max_height_ft: 50
+        uses: Neighborhood commercial; residential permitted at 700 sqft/unit
+        note: >-
+          No minimum lot area. Minimum building height 15 ft and a MAXIMUM front
+          setback of 0 ft - buildings must be built to the sidewalk. Ground-floor
+          transparency standards apply (CMC 1409-23).
+      CN-M:
+        name: CN-M Commercial Neighborhood - Mixed
+        residential: false
+        front_yard_ft: 0
+        max_height_ft: 50
+        uses: Neighborhood commercial; residential permitted at 700 sqft/unit
+        note: >-
+          No minimum lot area. Minimum building height 15 ft, maximum front
+          setback 12 ft. Ground-floor transparency standards apply.
+      CC-P:
+        name: CC-P Commercial Community - Pedestrian
+        residential: false
+        front_yard_ft: 0
+        max_height_ft: 85
+        uses: Community commercial; residential permitted at 700 sqft/unit
+        note: No minimum lot area. Maximum front setback 0 ft; minimum height 15 ft.
+      CC-M:
+        name: CC-M Commercial Community - Mixed
+        residential: false
+        front_yard_ft: 0
+        max_height_ft: 85
+        uses: Community commercial; residential permitted at 700 sqft/unit
+        note: No minimum lot area. Maximum front setback 12 ft; minimum height 15 ft.
+      CC-A:
+        name: CC-A Commercial Community - Auto
+        residential: false
+        front_yard_ft: 0
+        max_height_ft: 85
+        uses: Auto-oriented community commercial; residential at 700 sqft/unit
+        note: >-
+          No minimum lot area and no maximum front setback; building placement and
+          transparency standards do not apply.
+      CG-A:
+        name: CG-A Commercial General - Auto
+        residential: false
+        front_yard_ft: 0
+        max_height_ft: 85
+        uses: General auto-oriented commercial; residential at 700 sqft/unit
+        note: >-
+          No minimum lot area and no maximum front setback; building placement and
+          transparency standards do not apply.
+
+      # --- Chapter 1407, Office Districts (Schedule 1407-07) ---
+      OL:
+        name: OL Office Limited
+        residential: false
+        min_lot_area_sqft: 1200
+        area_is_per_unit: true
+        front_yard_ft: 20
+        side_yard_ft: 5
+        side_yard_total_ft: 10
+        rear_yard_ft: 20
+        max_height_ft: 45
+        uses: Limited office; dwellings at 1,200 sqft of lot per unit
+        note: >-
+          Maximum floor area ratio 0.6. An extra 2 ft of front setback is required
+          for every 10 ft of building height above 25 ft (CMC 1407-09).
+      OG:
+        name: OG Office General
+        residential: false
+        min_lot_area_sqft: 700
+        area_is_per_unit: true
+        front_yard_ft: 20
+        side_yard_ft: 5
+        side_yard_total_ft: 20
+        rear_yard_ft: 20
+        max_height_ft: 100
+        uses: General office; dwellings at 700 sqft of lot per unit
+        note: Maximum floor area ratio 1.75.
+
+      # --- Chapter 1413, Manufacturing Districts (Schedule 1413-07) ---
+      ML:
+        name: ML Manufacturing Limited
+        residential: false
+        min_lot_area_sqft: 2000
+        area_is_per_unit: true
+        front_yard_ft: 20
+        side_yard_ft: 3
+        side_yard_total_ft: 12
+        rear_yard_ft: 25
+        max_height_ft: 45
+        uses: Light manufacturing; dwellings at 2,000 sqft of lot per unit
+        note: >-
+          Residential use needs a 4,000 sqft lot minimum; non-residential use has
+          no lot minimum. The setbacks shown are the residential ones -
+          non-residential is 20 ft front, 10/20 side, 10 ft rear.
+      MG:
+        name: MG Manufacturing General
+        residential: false
+        front_yard_ft: 0
+        side_yard_ft: 0
+        rear_yard_ft: 0
+        max_height_ft: 85
+        uses: General manufacturing
+        note: No minimum lot area and no required yards.
+
+      # --- planned / special districts: no fixed envelope ---
+      PD:
+        name: PD Planned Development District
+        residential: true
+        uses: Whatever the approved development plan allows
+        note: >-
+          A planned district (CMC Chapter 1429). There is no district-wide
+          envelope: lot sizes, setbacks, height and permitted uses are fixed by
+          the approved development plan for that specific site, so the plan on
+          file with City Planning is the governing document.
+      PR:
+        name: PR Park and Recreation District
+        residential: false
+        uses: Parks, recreation and open space
+        note: >-
+          CMC Chapter 1416. Public and private open space; not a development
+          district.
+
+    # The county appends Connected Communities designations to the base code, so
+    # 2,306 of Hyde Park's SF-6 parcels read "SF-6-MH". These do NOT replace the
+    # base district - they add permitted housing types and cut parking on top of
+    # it, which is exactly what makes an ordinary single-family lot an infill
+    # candidate. Established by Emer. Ord. No. 199-2024, eff. 7-1-2024.
+    overlays:
+      MH:
+        name: Connected Communities - Middle Housing
+        citation: "CMC 1403-04(b)"
+        effect: >-
+          Two-family, three-family and four-family dwellings are permitted by
+          right on top of the base district, and NO off-street parking is
+          required for them. Surface parking must go in the rear yard.
+      T:
+        name: Connected Communities - Transportation Corridor
+        citation: "CMC 1403-04(c)"
+        effect: >-
+          Two-family, three-family and four-family dwellings are permitted by
+          right and minimum off-street parking does not apply. Multi-family is
+          permitted only where the site is also in a neighborhood business
+          district. Surface parking must go in the rear yard.
+      B:
+        name: Connected Communities - Neighborhood Business
+        citation: "CMC 1403-04(a)"
+        effect: >-
+          Two-family through multi-family are permitted by right. No off-street
+          parking is required for a new building of ten or fewer dwelling units,
+          and only half a space per unit above ten. No parking is required for a
+          new commercial or mixed-use building with 5,000 sqft or less of
+          commercial space. Surface parking must go in the rear yard.

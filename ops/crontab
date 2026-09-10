@@ -1,0 +1,26 @@
+# Infill platform - pilot VM schedule.  Install with:
+#     crontab ops/crontab
+# (edit APP_DIR below first; cron does not expand ~ reliably)
+#
+# Cadence mirrors orchestration/pipelines.py TIERS. Times are VM-local; set the
+# VM to America/New_York so "before the workday" means what it says — agents
+# open the app in the morning and should find the overnight run already done.
+
+APP_DIR=/opt/infill-platform
+SHELL=/bin/bash
+MAILTO=""
+
+# daily 05:15 - code violations + building permits, then re-score.
+# Permits are the availability guard: a new-build permit means the lot is taken.
+15 5 * * *   $APP_DIR/ops/refresh.sh daily
+
+# weekly Mon 04:30 - sheriff-sale calendar + land bank. Runs before the daily so
+# Monday's leads reflect the new auction list.
+30 4 * * 1   $APP_DIR/ops/refresh.sh weekly
+
+# quarterly, 1st of Jan/Apr/Jul/Oct at 02:00 - full CAGIS parcel/CAMA refresh.
+0 2 1 1,4,7,10 *  $APP_DIR/ops/refresh.sh quarterly
+
+# hourly freshness probe - logs a line whenever a feed is past its budget, so a
+# silently dead cron entry shows up in the log instead of in an agent's face.
+7 * * * *    cd $APP_DIR && python -m orchestration.freshness >> ops/logs/freshness.log 2>&1

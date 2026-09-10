@@ -1,0 +1,79 @@
+# Versioned scoring configuration (Appendix C). Every score row records the
+# version it was computed under, so weightings are reproducible and A/B-comparable.
+# Bump `version` on any change; never edit in place after a production run.
+version: "2026.2"
+# 2026.2: discrimination within components — vacant lots scaled by land value +
+# lot size (buries slivers), distress scaled by delinquency-$ relative to land
+# value, ownership modifier (absentee/LLC more acquirable). Prior: versions/2026.1.yaml
+
+# Improvement-to-land ratio thresholds below which a parcel reads as underutilized,
+# per economic use class. Lower I/L => more land value sitting idle => higher signal.
+il_thresholds:
+  commercial: 1.0
+  multifamily: 1.0
+  single_family: 0.5
+
+# A parcel is "infill" if enough of its neighborhood within the buffer is developed.
+infill:
+  neighbor_buffer_ft: 100
+  min_developed_share: 0.6
+
+# Adjacent same-owner parcels combining above this footprint flag an assemblage play.
+assemblage:
+  min_combined_sqft: 7500
+
+# Vacant-lot quality scaling (geometric mean of the two ramps). A vacant parcel
+# earns full underutilization credit only if it is both big enough to build on
+# and worth something — buries slivers/common-area scraps without dropping them.
+# Missing land value or area skips that ramp (don't punish missing data).
+vacant_scaling:
+  sliver_sqft: 500          # at or below: size factor 0
+  viable_sqft: 5000         # at or above: size factor 1 (buildable city lot)
+  min_land_value: 2000      # at or below: value factor 0
+  full_land_value: 40000    # at or above: value factor 1
+
+# Distress severity scaling: multiplier on a signal's contribution based on the
+# signal's $ severity relative to the parcel's land value. A lot delinquent for
+# most of its land value marks a far more motivated seller than a $50 slip.
+severity_scaling:
+  tax_delinquent: { min_mult: 0.4, max_mult: 1.6, ratio_at_max: 1.0 }
+
+# Ownership modifier: multiplies the final composite (capped at max_total, then
+# score capped at 100). Absentee + entity owners are more acquirable; publicly
+# owned parcels route through the land bank, not direct acquisition.
+ownership_multiplier:
+  absentee: 1.05
+  llc: 1.05
+  trust: 1.03
+  public: 0.85
+  max_total: 1.10
+
+# Distress signals: per-type weight and recency half-life in months.
+# null half_life => no decay (a standing-inventory fact, not a dated event).
+distress_weights:
+  foreclosure_filing: { weight: 1.0, half_life: 12 }
+  sheriff_sale:       { weight: 1.0, half_life: 12 }
+  tax_delinquent:     { weight: 0.8, half_life: 24 }
+  condemnation:       { weight: 0.9, half_life: 36 }
+  code_violation:     { weight: 0.4, half_life: 18 }
+  landbank_inventory: { weight: 0.7, half_life: null }
+
+# Composite opportunity score = weighted sum of the five components. Must sum to 1.0.
+composite_weights:
+  underutilization: 0.30
+  capacity_gap:     0.25
+  distress:         0.25
+  assemblage:       0.10
+  demand:           0.10
+
+# Soft constraints: multiply the final score (do not zero it). Surfaced as flags so
+# an analyst can judge entitlement risk per parcel.
+constraint_penalty:
+  flood: 0.7
+  steep_slope: 0.8
+  historic: 0.85
+  cso: 0.9
+
+# Hard knockout: drop the parcel entirely below the surfacing threshold.
+hard_knockout:
+  - regulatory_floodway

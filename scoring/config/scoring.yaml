@@ -1,0 +1,343 @@
+# Versioned scoring configuration (Appendix C). Every score row records the
+# version it was computed under, so weightings are reproducible and A/B-comparable.
+# Bump `version` on any change; never edit in place after a production run.
+version: "2026.24"
+# 2026.24: teardown land-value factor made MARKET-RELATIVE (scored vs each
+# neighborhood's median SF land value) — the fixed $40k cap saturated at 100 for
+# 63% of target-market teardowns, so Development potential could not rank one
+# teardown above another. See teardown.land_ref_ratio_* below.
+# 2026.23: SCORING REDESIGN. The abstract underutilization/capacity/assemblage
+# components saturated (underutilization pinned at 100 on almost every top lead,
+# meaning nothing) and read as an opaque "assemblage" label. Replaced with two
+# tangible pillars an agent can read straight off the dossier, keeping distress +
+# demand (which work). Four pillars:
+#   development (0.40)      vacant lot OR teardown (small house vs lot value)
+#   owner_motivation (0.25) long tenure / absentee / trust / bank / CMHA / Port
+#   distress (0.20)         tax lien / sheriff / code violations   (kept)
+#   demand (0.15)           new-construction demand                (kept)
+# Assemblage is DROPPED entirely (no component, no flag). The ownership_multiplier
+# is removed (folded into owner_motivation). All the false-positive guards and
+# knockouts are kept. The pillars reflect the real-world qualities the agents
+# filter for; validated to rank the team's 573 real deals well.
+# 2026.22: home SIZE in the teardown score. Ingested CAGIS building footprints
+# (227,527 residential, SQFT + stories -> est. finished area on 193,606 parcels;
+# year-built is null in the public feed so age stays unavailable). Their deal
+# homes are much SMALLER than ordinary homes in the same markets (median ~2,175
+# vs ~3,526 sqft) - a small house on a valuable lot is a stronger teardown, a
+# large house weaker. teardown_score now multiplies by a size factor (full credit
+# at/below ~2,500 sqft, tapering to size_floor for large homes; unknown size =
+# neutral). Trims large-home false teardowns without touching the validated
+# land-share signal or vacant-land credit.
+# 2026.21: TEARDOWN opportunities (Oyler Hines Mode A). Matching 559 of the team's
+# real LOI addresses to parcels showed 91% score ZERO - they are a teardown/
+# rebuild team (556/573 buy an existing HOUSE and pay ~land value to demolish +
+# rebuild), while the model only credited vacant/underused LAND. Deal profile vs
+# ordinary homes in the same markets: same land value (~$124k) but a far more
+# modest house (improv $195k vs $339k) => land is a bigger SHARE of value
+# (land-share 0.41 vs 0.28). New teardown_score credits a single-family home whose
+# LAND is a large share of total value, ramped from an ordinary home (0.28) to a
+# strong teardown (0.48, the deals' 75th pct), gated to valuable lots. Folded into
+# underutilization as a MAX so vacant-land opportunities are untouched - Mode A now
+# surfaces BOTH. Anti-overfit: a population-level ramp from aggregate deal stats,
+# not memorised parcels; validated against the held-out deal cohort.
+# 2026.20: acquirable public authorities. The Oyler Hines team actively sources
+# land FROM public land-disposing authorities - CMHA (Cincinnati Metropolitan
+# Housing Authority) and the Port of Greater Cincinnati. These were caught by the
+# not_acquirable knockout (public/institutional owner) and scored 0, so they never
+# surfaced as ranked leads. Now they are waived like a land-bank listing: a
+# public entity that DISPOSES of land is a lead, not a dead end. (Port already
+# ranked via its land-bank signal; this brings CMHA in and makes it explicit.)
+# 2026.19: commercial-corridor context, from the first audit round. Reviewer
+# labels showed commercial parcels still topping the board - 13 of 16 flagged
+# fakes were commercial (occupied buildings + commercial land), concentrated in
+# Walnut Hills' T5/CC corridors. Root cause: the residential-context damper only
+# fires when res_context_pct is KNOWN; on a commercial corridor (CC/CN/CG/T5)
+# with NO residential evidence (null context) it returned neutral, so the lot
+# kept full housing credit. Fix: on a commercial corridor, null context damps to
+# the commercial floor (the presumptive use there is commercial, not for-sale
+# housing). Downtown (DD) is deliberately NOT a corridor, so genuine downtown
+# development leads are untouched; residential zoning (SF/RM/T3/T4) is untouched.
+# Generalizable (zoning-based, no parcel is named) and validated to not demote
+# any lead the reviewer marked real. The audit stays open: remaining flagged
+# fakes (township no-zoning, RM-commercial edge cases) await later rounds.
+# 2026.14: condominium-regime rule. Deeds sharing one physical footprint
+# (identical geometry) are condo/townhouse units, not N independent lots -
+# Wind St in Columbia Twp had 6 unbuilt Blue Ocean Dev units + 1 sold $1.1M
+# townhouse on one ~1-acre footprint, each scoring 80.75. Condo units now get
+# no underutilization or capacity signal (a unit owns a slice, not the site).
+# Also suppressed capacity for complex satellites (same latent double-count).
+# 2026.13: distress-waiver calibration. Measured on live data, a single
+# routine tax delinquency yields distress ~40.5 - so the old waiver of 40 let
+# almost any delinquent parcel escape the amenity/subdivision damps (the
+# Brunsman Wy builder lots did exactly that). A sheriff sale averages ~74.1, so
+# both waivers move to 75: the exception now needs genuine failure, not one
+# unpaid bill.
+# 2026.12: two more split-bookkeeping / not-for-sale patterns, found by
+# developer-style diligence on the top 10: (a) satellites now also detected by
+# ADJACENCY to a same-owner commercial building >= $500k (5801 Colerain Ave is
+# the outparcel of the same owner's $1.3M store; the same-address rule missed
+# it). House side lots (neighbour < $500k) are deliberately untouched - real
+# infill, ~31k of them. (b) builder subdivision inventory: >=3 same-owner lots
+# sharing one plat date and land value = an active project's stock.
+# 2026.11: complex-satellite rule - a deed with no improvements whose
+# same-address/same-owner sibling holds the buildings is not developable land
+# (4045 Reading Rd ranked #1 as 'vacant' while its sibling held $920k of
+# apartments). Apartment classes 401/402/403 are never vacant. Single-family
+# classes with $0 improvement stay vacant - real demolished-house infill.
+# 2026.10: demand component live (5 of 5) --" neighborhood sales turnover, price
+# momentum, and sale-to-assessed ratio, computed from Auditor sale history and
+# shown VERBATIM in the dossier (the score is a documented summary, the metrics
+# are the product).
+# 2026.9: NULL valuation is UNKNOWN, not vacant --" multi-deed complexes book
+# improvements on main deeds and leave satellites NULL; those read as prime
+# vacant land (Williamsburg apartments' lawn ranked #2 countywide). Vacancy now
+# requires affirmative evidence (vacant class or explicit $0 improvement).
+# 2026.8: operating-amenity damping --" golf courses / country clubs (DTE
+# recreation classes + club owner names) read as vast underutilized land but
+# are healthy businesses, not listings. x0.3 penalty, WAIVED when the parcel's
+# distress crosses the threshold (a failing club is a legitimate play).
+# 2026.7: assemblage component live --" same-owner adjacent clusters >= threshold,
+# scored by combined footprint x cluster vacancy. Members carry assemblage_id.
+# 2026.6: capacity_gap component live --" allowed units (zoning_rules.yaml density
+# by district) minus existing units; unknown districts excluded per-parcel
+# rather than zeroed.
+# 2026.5: unified not_acquirable knockout --" DTE 600-series exempt AND
+# 800-series public utility classes, plus any parcel with a public or
+# institutional owner (hospitals, universities, churches, cemeteries,
+# railroads), regardless of class code. Exception: landbank_inventory signal
+# keeps a parcel scoreable (publicly held but genuinely for sale).
+# 2026.4: tax-exempt (600-series) knockout --" Eden Park was ranking.
+# 2026.3: per-type contribution caps (max_events) on distress signals.
+# 2026.2: vacant lots scaled by land value + lot size, severity-scaled distress,
+# ownership modifier (absentee/LLC more acquirable). Priors under versions/.
+
+
+
+# Improvement-to-land ratio thresholds below which a parcel reads as underutilized,
+# per economic use class. Lower I/L => more land value sitting idle => higher signal.
+il_thresholds:
+  commercial: 1.0
+  multifamily: 1.0
+  single_family: 0.5
+
+
+
+# Residential infill context: a vacant lot is a HOUSING play only when houses
+# surround it. Vacant-lot underutilization credit scales from `floor` (little
+# residential context - e.g. a commercial-strip lot) up to full credit at
+# res_context_full_pct improved-residential neighbors. NULL context = neutral.
+infill:
+  neighbor_buffer_ft: 150
+  res_context_full_pct: 40
+  res_context_floor: 0.30
+  # commercially-zoned parcels: the default use there IS commercial, so a
+  # housing thesis needs much stronger residential surroundings (agent review
+  # rejected CC-P lots at 25-33% context, approved RM/SF lots at 50-80%)
+  commercial_context_full_pct: 70
+  commercial_context_floor: 0.20
+  # Commercial-corridor districts (matched by zoning-code prefix): the presumptive
+  # use is commercial retail/office, so a for-sale housing thesis needs POSITIVE
+  # residential-neighbor evidence. On these, unknown (null) residential context
+  # damps to commercial_context_floor rather than staying neutral. Downtown (DD)
+  # is intentionally excluded so real downtown development leads keep full credit.
+  commercial_corridor_prefixes: ["CC", "CN", "CG", "T5"]
+
+
+
+# Teardown/rebuild credit for an IMPROVED single-family home (Mode A). Scales with
+# how large a share of total value the LAND is (a modest house on a valuable lot =
+# a teardown candidate), gated to lots worth building on. Derived from the team's
+# deal history; folded into underutilization as a max, so vacant credit is intact.
+teardown:
+  land_share_floor: 0.28     # at/below: an ordinary home, no teardown credit
+  land_share_full: 0.48      # at/above: strongly land-dominant (deals' 75th pct)
+  # land-value factor is MARKET-RELATIVE (v2026.24): a lot is scored against its
+  # neighborhood's median single-family land value, not an absolute dollar cap.
+  # A fixed $40k cap saturated at 100 for ~every target-market lot (Madeira's
+  # median SF lot is ~$142k), recreating the underutilization-pinned-at-100
+  # problem this redesign existed to kill. Ratio = lot land value / nbhd median.
+  # ratio = lot land value / neighborhood median SF (510) land value. The team's
+  # real deals sit at ratio ~0.99 (they buy AVERAGE-value lots — the teardown is
+  # the small house, not a premium lot), p10-p90 0.66-1.42. So: an output floor
+  # keeps an average-lot teardown a solid lead, the ramp reserves the top of the
+  # range for genuinely premium lots (>2.2x the local median).
+  land_ref_floor: 0.5        # a below-median lot is still a real teardown
+  land_ref_ratio_floor: 0.4  # ramp starts adding credit above 0.4x median
+  land_ref_ratio_full: 2.2   # at/above 2.2x the nbhd median SF lot = prime site
+  min_land_value: 2000       # absolute fallback (thin/unknown neighborhoods) ->
+  full_land_value: 40000     #   used only when no local median is available
+  # home size (est. finished area = footprint sqft x stories). A small home is a
+  # stronger teardown; a large one weaker. Deals ~2,175 sqft vs ordinary ~3,526.
+  size_small_sqft: 2500      # at/below: full teardown credit
+  size_large_sqft: 5000      # at/above: reduced to size_floor
+  size_floor: 0.5            # a big house still teardownable, just less so
+  # (missing home size => neutral factor 1.0, never penalise unknown)
+
+
+# Assemblies: adjacent parcels that TOGETHER make a developable tract. This is a
+# finder, not a scoring input — it does not feed the opportunity score.
+#
+# The old floor was 7,500 sqft (0.17 acres), which counted a house plus its side
+# lot: 83% of clusters came back under 2 acres. A real acreage floor plus the
+# junk flags the platform already computes (condo / complex-satellite /
+# subdivision-inventory / not-acquirable / operating-amenity) is what separates a
+# genuine tract from bookkeeping noise.
+assemblage:
+  min_combined_acres: 3.0    # a cluster must total at least this to qualify
+  min_member_acres: 0.5      # multi-owner only: ignore ordinary subdivision lots,
+                             #   otherwise a whole street chains into one "tract"
+
+  # A realistic tract is a FEW BIG parcels, not many small ones. Assembling 54
+  # platted lots to reach 4.7 acres means buying 54 houses, and the acquisition
+  # cost erodes the whole deal. Acres-per-parcel is the discriminator that
+  # separates the two, measured against the reference deal (WOODSVIEW HOUSE:
+  # 3 parcels / 19.4 acres = 6.47 ac each):
+  #     MI HOMES OF CINCINNATI   54 parcels / 4.7 ac = 0.09  <- builder inventory
+  #     THREE OAKS SINGLE FAMILY 48 parcels / 4.0 ac = 0.08  <- builder inventory
+  #     LE STEELE PROPERTIES      8 parcels / 78 ac  = 9.78  <- a real tract
+  # A raw parcel cap alone would wrongly kill Le Steele, hence the ratio.
+  min_acres_per_parcel: 1.5
+
+  # Parcel caps differ by tier on purpose: with ONE owner the parcel count is
+  # just paperwork (still a single negotiation), but in a multi-owner tract every
+  # parcel is another seller who has to agree.
+  max_parcels_same: 10
+  max_parcels_multi: 4       # uncapped, the largest cluster measured 886 parcels
+
+
+
+# Vacant-lot quality scaling (geometric mean of the two ramps). A vacant parcel
+# earns full underutilization credit only if it is both big enough to build on
+# and worth something --" buries slivers/common-area scraps without dropping them.
+# Missing land value or area skips that ramp (don't punish missing data).
+vacant_scaling:
+  sliver_sqft: 500          # at or below: size factor 0
+  viable_sqft: 5000         # at or above: size factor 1 (buildable city lot)
+  min_land_value: 2000      # at or below: value factor 0
+  full_land_value: 40000    # at or above: value factor 1
+
+
+
+# Distress severity scaling: multiplier on a signal's contribution based on the
+# signal's $ severity relative to the parcel's land value. A lot delinquent for
+# most of its land value marks a far more motivated seller than a $50 slip.
+severity_scaling:
+  tax_delinquent: { min_mult: 0.4, max_mult: 1.6, ratio_at_max: 1.0 }
+
+
+
+# Ownership modifier: multiplies the final composite (capped at max_total, then
+# score capped at 100). Absentee + entity owners are more acquirable; publicly
+# owned parcels route through the land bank, not direct acquisition.
+ownership_multiplier:
+  absentee: 1.05
+  llc: 1.05
+  trust: 1.03
+  public: 0.85
+  max_total: 1.10
+
+
+
+# Distress signals: per-type weight and recency half-life in months.
+# null half_life => no decay (a standing-inventory fact, not a dated event).
+# max_events caps a type's total contribution at the equivalent of that many
+# full-strength events (diminishing returns on repeat reports); absent = uncapped.
+distress_weights:
+  foreclosure_filing: { weight: 1.0, half_life: 12 }
+  sheriff_sale:       { weight: 1.0, half_life: 12 }
+  tax_delinquent:     { weight: 0.8, half_life: 24 }
+  condemnation:       { weight: 0.9, half_life: 36, max_events: 2 }
+  code_violation:     { weight: 0.4, half_life: 18, max_events: 3 }
+  landbank_inventory: { weight: 0.7, half_life: null }
+
+
+
+# Composite opportunity score = weighted sum of the four pillars. Must sum to 1.0.
+composite_weights:
+  development:      0.40
+  owner_motivation: 0.25
+  distress:         0.20
+  demand:           0.15
+
+
+# Owner motivation: how likely the owner is to sell — the agents' acquisition
+# filters, baked into the score. A weighted sum of exact-data signals, capped 100.
+owner_motivation:
+  tenure_min_years: 10       # below: no long-tenure credit
+  tenure_full_years: 40      # at/above: full long-tenure credit
+  weights:
+    tenure: 55               # held a long time (life stage, low basis)
+    absentee: 20             # owner lives elsewhere
+    trust: 20                # held in a trust (estate planning / settling)
+    bank: 45                 # lender/REO — must dispose
+    authority: 40            # CMHA / Port — sells land for development
+
+
+
+# Soft constraints: multiply the final score (do not zero it). Surfaced as flags so
+# an analyst can judge entitlement risk per parcel.
+constraint_penalty:
+  flood: 0.7
+  steep_slope: 0.8
+  historic: 0.85
+  cso: 0.9
+  operating_amenity: 0.3
+  subdivision_inventory: 0.35
+  permit_issued: 0.15
+
+
+
+# Operating amenities (golf courses, country/swim/tennis clubs): vast land,
+# thin improvements --" but going concerns, not opportunities. The penalty is
+# waived when distress_score >= distress_waiver: a failing club is a real play.
+amenity:
+  classes: ["461", "462", "463"]     # Ohio DTE commercial recreation / golf
+  owner_keywords: ["COUNTRY CLUB", "GOLF", "SWIM CLUB", "TENNIS CLUB",
+                   "ATHLETIC CLUB", "RACQUET"]
+  distress_waiver: 75
+
+
+
+# A recent new-building permit on the parcel itself: someone is already
+# building - the opportunity is taken (until the assessor catches up).
+being_developed:
+  window_months: 24
+
+# Builder subdivision inventory: damped unless the project itself is
+# distressed (a stalled subdivision is a legitimate acquisition).
+subdivision:
+  distress_waiver: 75
+# Neighborhood demand: metric ramps + blend weights. Sales below
+# min_market_price are non-arms-length transfers (family deeds, $0 tax
+# transfers) and never counted.
+demand:
+  # DEVELOPMENT demand (v2, permit-driven). Back-test: resale-turnover demand was
+  # anti-correlated with construction (Spearman -0.37); permit density back-tests
+  # positive. Score = build density + trajectory; null outside city permit cover.
+  dev_window_years: 5
+  dev_recent_months: 30
+  dev_full_per_1k: 15.0            # new-builds/1k parcels at/above => full density credit
+  dev_trajectory_cap_pct: 150     # recent-vs-prior % change clamped to +/- this
+  weights: { dev_density: 0.7, dev_trajectory: 0.3 }
+  # resale metrics kept as dossier CONTEXT only (not scored) since 2026.15
+  min_market_price: 5000
+  window_months: 24
+
+
+
+# Hard knockout: drop the parcel entirely below the surfacing threshold.
+# not_acquirable is applied by the scorer for exempt/utility classes and
+# public/institutional owners without a landbank_inventory signal.
+# Public land-disposing authorities: owners that actively SELL land for
+# development, so their parcels are leads (waive the not_acquirable knockout,
+# same as a land-bank listing) rather than dead ends.
+acquirable_authorities:
+  owner_keywords: ["METROPOLITAN HOUSING", "HOUSING AUTHORITY", "CMHA",
+                   "PORT OF GREATER", "PORT AUTHORITY",
+                   "LAND REUTILIZATION", "LAND BANK"]
+
+
+hard_knockout:
+  - regulatory_floodway
+  - not_acquirable
+
